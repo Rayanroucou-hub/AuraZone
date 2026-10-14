@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AURAZONE - DUEL ARENA</title>
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #08070c;
+      color: #ffffff;
+      font-family: 'Impact', 'Arial Black', -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 12px;
+      overflow-x: hidden;
+    }
+
+    .header { text-align: center; margin-bottom: 10px; cursor: pointer; }
+    .title {
+      font-size: 2.2rem;
+      letter-spacing: 3px;
+      background: linear-gradient(180deg, #c084fc 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 15px rgba(168, 85, 247, 0.8);
+      text-transform: uppercase;
+    }
+    .status-badge {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 4px 14px;
+      background: rgba(168, 85, 247, 0.15);
+      border: 1px solid #a855f7;
+      border-radius: 20px;
+      font-family: sans-serif;
+      font-size: 0.8rem;
+      color: #e9d5ff;
+    }
+
+    /* VÉRIFICATION CAMÉRA */
+    #verificationOverlay { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 480px; }
+    .verify-camera-box {
+      position: relative; width: 100%; aspect-ratio: 3 / 4; background: #000;
+      border-radius: 18px; overflow: hidden; border: 3px solid #a855f7;
+      box-shadow: 0 0 25px rgba(168, 85, 247, 0.5); margin-bottom: 12px;
+    }
+    .verify-instructions {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      background: rgba(0, 0, 0, 0.85); padding: 10px 14px; border-radius: 10px;
+      border: 1px solid #a855f7; text-align: center; z-index: 20;
+    }
+    .verify-step-title { font-size: 0.9rem; color: #38bdf8; font-family: sans-serif; font-weight: bold; }
+    .verify-step-desc { font-size: 0.8rem; color: #e4e4e7; font-family: sans-serif; margin-top: 4px; }
+
+    /* CHOIX PSEUDO & DRAPEAU */
+    #nicknameOverlay {
+      display: none; flex-direction: column; align-items: center;
+      width: 100%; max-width: 400px; background: #120e1a;
+      border: 2px solid #a855f7; padding: 20px; border-radius: 16px;
+      margin-top: 20px; box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+    }
+    .nickname-title { font-size: 1.3rem; color: #c084fc; margin-bottom: 12px; font-family: sans-serif; }
+    .nickname-input, .flag-select {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #a855f7;
+      background: #08070c; color: #fff; font-size: 1rem; text-align: center;
+      margin-bottom: 12px; outline: none;
+    }
+
+    /* LOBBY */
+    #lobbyOverlay { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 480px; margin-top: 15px; }
+    
+    .play-row { display: flex; gap: 10px; width: 100%; align-items: center; }
+    .btn-play {
+      flex: 1; padding: 18px; border: none; border-radius: 16px;
+      background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+      color: #fff; font-size: 1.8rem; font-weight: 900; letter-spacing: 3px;
+      text-transform: uppercase; cursor: pointer; box-shadow: 0 6px 25px rgba(168, 85, 247, 0.6);
+    }
+    .flag-btn {
+      font-size: 2rem; background: #120e1a; border: 2px solid #a855f7;
+      padding: 10px 14px; border-radius: 16px; cursor: pointer;
+    }
+
+    .btn-secondary {
+      width: 100%; padding: 14px; margin-top: 10px; border: none; border-radius: 12px;
+      background: #1e1b2e; border: 1px solid #a855f7; color: #e9d5ff;
+      font-family: sans-serif; font-weight: bold; font-size: 1rem; cursor: pointer;
+    }
+
+    .friends-section {
+      width: 100%; background: #120e1a; border: 1px solid #3f3f46;
+      border-radius: 14px; padding: 12px; margin-top: 15px;
+    }
+    .friends-header { font-family: sans-serif; font-size: 0.9rem; color: #a1a1aa; margin-bottom: 10px; display: flex; justify-content: space-between; }
+    .friends-list { display: flex; flex-direction: column; gap: 8px; }
+    .friend-item {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #18181b; padding: 8px 12px; border-radius: 8px; font-family: sans-serif; font-size: 0.85rem;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .status-dot.online { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+
+    /* CLASSEMENT POPUP */
+    #leaderboardOverlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(8, 7, 12, 0.95); z-index: 100; flex-direction: column;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .leaderboard-box {
+      width: 100%; max-width: 420px; background: #120e1a; border: 2px solid #a855f7;
+      border-radius: 16px; padding: 20px; box-shadow: 0 0 30px rgba(168, 85, 247, 0.6);
+    }
+    .lb-title { text-align: center; font-size: 1.6rem; color: #c084fc; margin-bottom: 15px; }
+    .lb-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
+    .lb-item {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #18181b; padding: 10px; border-radius: 8px; font-family: sans-serif;
+    }
+
+    /* DUEL ARENE */
+    #arenaOverlay { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 800px; }
+    .match-timer-box {
+      background: #1f192f; border: 2px solid #ec4899; padding: 6px 20px;
+      border-radius: 20px; font-size: 1.5rem; color: #f43f5e; margin-bottom: 10px;
+    }
+    .aura-dashboard { display: flex; gap: 10px; width: 100%; margin-bottom: 10px; }
+    .aura-card { flex: 1; background: #120e1a; border: 1px solid rgba(168, 85, 247, 0.4); border-radius: 10px; padding: 8px; text-align: center; }
+    .aura-card .label { font-family: sans-serif; font-size: 0.65rem; color: #a1a1aa; }
+    .aura-card .value { font-size: 1.4rem; color: #f0abfc; }
+
+    .arena-container { display: flex; gap: 10px; width: 100%; }
+    .player-box { flex: 1; position: relative; aspect-ratio: 3 / 4; background: #000; border-radius: 14px; overflow: hidden; border: 2px solid #a855f7; }
+    .player-box.opponent { border-color: #ef4444; }
+    
+    .player-label-container {
+      position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 4px; z-index: 10;
+    }
+    .player-label {
+      background: rgba(0, 0, 0, 0.85); padding: 4px 10px; border-radius: 8px;
+      font-family: sans-serif; font-size: 0.75rem; font-weight: bold;
+      border: 1px solid rgba(168, 85, 247, 0.5); text-transform: uppercase;
+    }
+    .streak-badge {
+      background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #f59e0b;
+      padding: 2px 8px; border-radius: 6px; font-family: sans-serif; font-size: 0.7rem; font-weight: bold; width: fit-content;
+    }
+
+    video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+    .mirror { transform: scaleX(-1); }
+
+    /* ECRAN DE FIN */
+    #endGameOverlay {
+      display: none; flex-direction: column; align-items: center; width: 100%; max-width: 480px;
+      background: #120e1a; border: 2px solid #a855f7; padding: 20px; border-radius: 18px; margin-top: 10px;
+    }
+    .result-title { font-size: 2.2rem; margin-bottom: 15px; }
+    .result-scores { display: flex; justify-content: space-around; width: 100%; margin-bottom: 20px; }
+    .score-box { text-align: center; }
+    .score-num { font-size: 2.5rem; }
+    .score-green { color: #22c55e; } .score-red { color: #ef4444; }
+
+    .action-buttons { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    .btn-action { padding: 14px; border: none; border-radius: 10px; font-family: sans-serif; font-weight: bold; cursor: pointer; }
+    .btn-add-friend { background: #22c55e; color: #fff; }
+    .btn-report { background: #3f3f46; color: #ef4444; }
+    .btn-replay { background: #a855f7; color: #fff; font-size: 1.1rem; }
+    .btn-home { background: #18181b; color: #e4e4e7; border: 1px solid #3f3f46; }
+  </style>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <div class="header" id="headerTitle">
+    <h1 class="title">AURAZONE</h1>
+    <div id="status" class="status-badge">VÉRIFICATION REQUISE</div>
+  </div>
+
+  <!-- 1. VÉRIFICATION CAMÉRA -->
+  <div id="verificationOverlay">
+    <div class="verify-camera-box">
+      <div class="verify-instructions">
+        <div id="verifyStepTitle" class="verify-step-title">ÉTAPE 1 / 4 : MONTRER TES MAINS</div>
+        <div id="verifyStepDesc" class="verify-step-desc">Place tes mains devant l'écran pour calibrer la détection.</div>
+      </div>
+      <video id="verifyWebcam" class="mirror" autoplay playsinline muted></video>
+      <canvas id="verifyCanvas" class="mirror"></canvas>
+    </div>
+  </div>
+
+  <!-- 2. PSEUDO & SÉLECTION DU DRAPEAU -->
+  <div id="nicknameOverlay">
+    <div class="nickname-title">PSEUDO ET DRAPEAU</div>
+    <input type="text" id="nicknameInput" class="nickname-input" placeholder="Ton pseudo..." maxlength="12" />
+    <select id="flagSelect" class="flag-select">
+      <option value="🇫🇷">🇫🇷 France</option>
+      <option value="🇧🇪">🇧🇪 Belgique</option>
+      <option value="🇨🇭">🇨🇭 Suisse</option>
+      <option value="🇨🇦">🇨🇦 Canada</option>
+      <option value="🇩🇪">🇩🇪 Allemagne</option>
+      <option value="🇪🇸">🇪🇸 Espagne</option>
+      <option value="🇮🇹">🇮🇹 Italie</option>
+      <option value="🇬🇧">🇬🇧 Royaume-Uni</option>
+      <option value="🇺🇸">🇺🇸 États-Unis</option>
+      <option value="🇲🇦">🇲🇦 Maroc</option>
+      <option value="🇩🇿">🇩🇿 Algérie</option>
+      <option value="🇹🇳">🇹🇳 Tunisie</option>
+      <option value="🇧🇷">🇧🇷 Brésil</option>
+      <option value="🇯🇵">🇯🇵 Japon</option>
+    </select>
+    <button id="saveNicknameBtn" class="btn-play" style="font-size: 1.2rem; padding: 14px;">VALIDER</button>
+  </div>
+
+  <!-- 3. LOBBY -->
+  <div id="lobbyOverlay">
+    <div class="play-row">
+      <button id="playBtn" class="btn-play">JOUER</button>
+      <button id="flagBtn" class="flag-btn">🇫🇷</button>
+    </div>
+
+    <div id="connectingTimer" style="display:none; margin-top: 15px; text-align: center; background: #120e1a; border: 1px solid #a855f7; padding: 14px; border-radius: 12px; width: 100%;">
+      <div style="font-family: sans-serif; font-size: 0.8rem; color: #a1a1aa;">RECHERCHE D'ADVERSAIRE...</div>
+      <div id="timerValue" style="font-size: 2.2rem; color: #f0abfc;">0.0s</div>
+    </div>
+
+    <div class="friends-section">
+      <div class="friends-header">
+        <span>MES AMIS</span>
+        <span id="friendsCount">0 ami(s)</span>
+      </div>
+      <div class="friends-list" id="friendsList"></div>
+    </div>
+
+    <button id="leaderboardBtn" class="btn-secondary">🏆 CLASSEMENT MONDIAL</button>
+  </div>
+
+  <!-- POPUP CLASSEMENT MONDIAL -->
+  <div id="leaderboardOverlay">
+    <div class="leaderboard-box">
+      <div class="lb-title">🏆 CLASSEMENT MONDIAL</div>
+      
+      <div id="googleAuthSection" style="text-align: center; margin-bottom: 15px;">
+        <p style="font-family: sans-serif; font-size: 0.85rem; color: #a1a1aa; margin-bottom: 10px;">
+          Connecte ton compte Google pour apparaître et voir le classement mondial.
+        </p>
+        <button id="googleLoginBtn" class="btn-action" style="background: #ffffff; color: #000;">
+          🌐 Se connecter avec Google
+        </button>
+      </div>
+
+      <div id="lbList" class="lb-list"></div>
+      <button id="closeLbBtn" class="btn-secondary" style="margin-top: 15px;">FERMER</button>
+    </div>
+  </div>
+
+  <!-- 4. DUEL ARENE -->
+  <div id="arenaOverlay">
+    <div id="matchTimer" class="match-timer-box">20s</div>
+
+    <div class="aura-dashboard">
+      <div class="aura-card"><div class="label">TON AURA</div><div id="myAuraVal" class="value">0</div></div>
+      <div class="aura-card"><div class="label">AURA ADVERSAIRE</div><div id="oppAuraVal" class="value">0</div></div>
+    </div>
+
+    <div class="arena-container">
+      <div class="player-box">
+        <div class="player-label-container">
+          <div id="myLabel" class="player-label" style="color: #c084fc;">🇫🇷 JOUEUR</div>
+          <div id="myStreakBadge" class="streak-badge">🔥 0</div>
+        </div>
+        <video id="arenaWebcam" class="mirror" autoplay playsinline muted></video>
+        <canvas id="arenaCanvas" class="mirror"></canvas>
+      </div>
+      <div class="player-box opponent">
+        <div class="player-label-container">
+          <div id="oppLabel" class="player-label" style="color: #f87171;">🇫🇷 ADVERSAIRE</div>
+          <div id="oppStreakBadge" class="streak-badge" style="border-color: #ef4444; color: #ef4444;">🔥 0</div>
+        </div>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. ECRAN DE FIN -->
+  <div id="endGameOverlay">
+    <div id="resultTitle" class="result-title">VICTOIRE !</div>
+    <div class="result-scores">
+      <div class="score-box"><div id="endMyName" class="score-name">TOI</div><div id="endMyScore" class="score-num score-green">0</div></div>
+      <div class="score-box"><div id="endOppName" class="score-name">ADVERSAIRE</div><div id="endOppScore" class="score-num score-red">0</div></div>
+    </div>
+
+    <div class="action-buttons">
+      <button id="addFriendBtn" class="btn-action btn-add-friend">➕ AJOUTER EN AMI</button>
+      <button id="reportBtn" class="btn-action btn-report">⚠️ SIGNALER LE JOUEUR</button>
+      <button id="replayBtn" class="btn-action btn-replay">🔄 REJOUER</button>
+      <button id="goHomeBtn" class="btn-action btn-home">🏠 REVENIR AU SALON</button>
+    </div>
+  </div>
+
+  <script>
+    const statusDiv = document.getElementById('status');
+    const headerTitle = document.getElementById('headerTitle');
+    const verificationOverlay = document.getElementById('verificationOverlay');
+    const nicknameOverlay = document.getElementById('nicknameOverlay');
+    const lobbyOverlay = document.getElementById('lobbyOverlay');
+    const arenaOverlay = document.getElementById('arenaOverlay');
+    const endGameOverlay = document.getElementById('endGameOverlay');
+
+    const verifyStepTitle = document.getElementById('verifyStepTitle');
+    const verifyStepDesc = document.getElementById('verifyStepDesc');
+    const verifyWebcam = document.getElementById('verifyWebcam');
+    const verifyCanvas = document.getElementById('verifyCanvas');
+
+    const nicknameInput = document.getElementById('nicknameInput');
+    const flagSelect = document.getElementById('flagSelect');
+    const saveNicknameBtn = document.getElementById('saveNicknameBtn');
+    const playBtn = document.getElementById('playBtn');
+    const flagBtn = document.getElementById('flagBtn');
+
+    const leaderboardBtn = document.getElementById('leaderboardBtn');
+    const leaderboardOverlay = document.getElementById('leaderboardOverlay');
+    const closeLbBtn = document.getElementById('closeLbBtn');
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const googleAuthSection = document.getElementById('googleAuthSection');
+    const lbList = document.getElementById('lbList');
+
+    const matchTimer = document.getElementById('matchTimer');
+    const arenaWebcam = document.getElementById('arenaWebcam');
+    const arenaCanvas = document.getElementById('arenaCanvas');
+    const remoteVideo = document.getElementById('remoteVideo');
+
+    const myAuraVal = document.getElementById('myAuraVal');
+    const oppAuraVal = document.getElementById('oppAuraVal');
+    const resultTitle = document.getElementById('resultTitle');
+    const endMyScore = document.getElementById('endMyScore');
+    const endOppScore = document.getElementById('endOppScore');
+    const endMyName = document.getElementById('endMyName');
+    const endOppName = document.getElementById('endOppName');
+
+    const myLabel = document.getElementById('myLabel');
+    const oppLabel = document.getElementById('oppLabel');
+    const myStreakBadge = document.getElementById('myStreakBadge');
+    const oppStreakBadge = document.getElementById('oppStreakBadge');
+
+    let currentStep = 1;
+    let myNickname = "Joueur";
+    let myFlag = "🇫🇷";
+    let oppNickname = "Adversaire";
+    let oppFlag = "🇫🇷";
+    let searchTimer = null;
+    let gameTimer = null;
+    let secondsElapsed = 0;
+    let matchTimeLeft = 20;
+
+    let totalAura = 0;
+    let oppAura = 0;
+    let localStream = null;
+    let roomId = null;
+    let peerConnection = null;
+
+    let googleUser = JSON.parse(localStorage.getItem('aura_google_user')) || null;
+    let winStreak = parseInt(localStorage.getItem('aura_win_streak')) || 0;
+    let myFriends = JSON.parse(localStorage.getItem('aura_friends')) || [];
+
+    const socket = io();
+
+    function updateStreakDisplay() {
+      myStreakBadge.textContent = '🔥 ' + winStreak;
+    }
+
+    function disconnectOpponent() {
+      if (peerConnection) { peerConnection.close(); peerConnection = null; }
+      if (remoteVideo.srcObject) {
+        remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+        remoteVideo.srcObject = null;
+      }
+      roomId = null;
+    }
+
+    // MediaPipe
+    const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+    hands.setOptions({ maxNumHands: 2, modelComplexity: 1 });
+
+    const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true });
+
+    hands.onResults((results) => {
+      const activeCanvas = currentStep < 5 ? verifyCanvas : arenaCanvas;
+      const activeCtx = activeCanvas.getContext('2d');
+      const activeVideo = currentStep < 5 ? verifyWebcam : arenaWebcam;
+
+      activeCanvas.width = activeVideo.videoWidth;
+      activeCanvas.height = activeVideo.videoHeight;
+      activeCtx.save();
+      activeCtx.clearRect(0, 0, activeCanvas.width, activeCanvas.height);
+
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        if (currentStep === 1) {
+          nextVerifyStep(2, "ÉTAPE 2 / 4 : TOURNER LA TÊTE À GAUCHE", "Tourne doucement la tête vers la gauche.");
+        } else if (currentStep === 5 && matchTimeLeft > 0) {
+          totalAura += 3;
+          myAuraVal.textContent = totalAura;
+          if (roomId) socket.emit('updateAura', { room: roomId, aura: totalAura });
+        }
+
+        for (const landmarks of results.multiHandLandmarks) {
+          for (const pt of landmarks) {
+            activeCtx.beginPath();
+            activeCtx.arc(pt.x * activeCanvas.width, pt.y * activeCanvas.height, 5, 0, 2 * Math.PI);
+            activeCtx.fillStyle = '#a855f7';
+            activeCtx.fill();
+          }
+        }
+      }
+      activeCtx.restore();
+    });
+
+    faceMesh.onResults((results) => {
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+        const landmarks = results.multiFaceLandmarks[0];
+        const nose = landmarks[1];
+        const leftEar = landmarks[234];
+        const rightEar = landmarks[454];
+
+        const headTurnRatio = (nose.x - leftEar.x) / (rightEar.x - leftEar.x);
+
+        if (currentStep === 2 && headTurnRatio < 0.35) {
+          nextVerifyStep(3, "ÉTAPE 3 / 4 : TOURNER LA TÊTE À DROITE", "Tourne doucement la tête vers la droite.");
+        } else if (currentStep === 3 && headTurnRatio > 0.65) {
+          nextVerifyStep(4, "ÉTAPE 4 / 4 : MOG CHECK", "Fixe l'écran et contracte la mâchoire !");
+        } else if (currentStep === 4) {
+          const chin = landmarks[152];
+          let mogScore = Math.min(100, Math.floor(Math.abs(chin.y - nose.y) * 350));
+
+          if (mogScore > 40) {
+            currentStep = 5;
+            verificationOverlay.style.display = 'none';
+            nicknameOverlay.style.display = 'flex';
+            statusDiv.textContent = 'CHOISIS TON PSEUDO & DRAPEAU';
+          }
+        }
+      }
+    });
+
+    function nextVerifyStep(step, title, desc) {
+      currentStep = step;
+      verifyStepTitle.textContent = title;
+      verifyStepDesc.textContent = desc;
+    }
+
+    saveNicknameBtn.addEventListener('click', () => {
+      const val = nicknameInput.value.trim();
+      if (val.length > 0) {
+        myNickname = val;
+        myFlag = flagSelect.value;
+        myLabel.textContent = myFlag + " " + myNickname.toUpperCase();
+        flagBtn.textContent = myFlag;
+        updateStreakDisplay();
+        nicknameOverlay.style.display = 'none';
+        lobbyOverlay.style.display = 'flex';
+        statusDiv.textContent = 'BIENVENUE ' + myNickname.toUpperCase();
+        statusDiv.style.borderColor = '#22c55e';
+      }
+    });
+
+    flagBtn.addEventListener('click', () => {
+      if (!googleUser) {
+        alert("Tu dois te connecter avec Google pour changer ton drapeau !");
+        leaderboardOverlay.style.display = 'flex';
+        return;
+      }
+      nicknameOverlay.style.display = 'flex';
+      lobbyOverlay.style.display = 'none';
+    });
+
+    leaderboardBtn.addEventListener('click', () => {
+      leaderboardOverlay.style.display = 'flex';
+      socket.emit('getLeaderboard');
+    });
+
+    closeLbBtn.addEventListener('click', () => {
+      leaderboardOverlay.style.display = 'none';
+    });
+
+    googleLoginBtn.addEventListener('click', () => {
+      const pseudo = prompt("Entre ton adresse Google / Pseudo Google :");
+      if (pseudo) {
+        googleUser = { googleId: 'goog_' + Date.now(), name: pseudo };
+        localStorage.setItem('aura_google_user', JSON.stringify(googleUser));
+        googleAuthSection.style.display = 'none';
+        
+        socket.emit('registerUser', {
+          googleId: googleUser.googleId,
+          nickname: myNickname,
+          flag: myFlag,
+          winStreak: winStreak
+        });
+        alert("Compte Google relié avec succès !");
+      }
+    });
+
+    socket.on('updateLeaderboard', (data) => {
+      lbList.innerHTML = '';
+      if (!googleUser) {
+        lbList.innerHTML = '<div style="color:#71717a; text-align:center; font-family:sans-serif;">Connecte-toi pour voir le classement.</div>';
+        return;
+      }
+      if (data.length === 0) {
+        lbList.innerHTML = '<div style="color:#71717a; text-align:center; font-family:sans-serif;">Aucun joueur dans le classement pour l\'instant.</div>';
+        return;
+      }
+      data.forEach((player, index) => {
+        const item = document.createElement('div');
+        item.className = 'lb-item';
+        item.innerHTML = `
+          <span>#${index + 1} ${player.flag} <b>${player.nickname}</b></span>
+          <span style="color:#f59e0b;">🔥 ${player.winStreak}</span>
+        `;
+        lbList.appendChild(item);
+      });
+    });
+
+    if (googleUser) {
+      googleAuthSection.style.display = 'none';
+    }
+
+    playBtn.addEventListener('click', () => {
+      playBtn.style.display = 'none';
+      document.getElementById('connectingTimer').style.display = 'block';
+      statusDiv.textContent = 'RECHERCHE D\'UN ADVERSAIRE...';
+
+      secondsElapsed = 0;
+      searchTimer = setInterval(() => {
+        secondsElapsed += 0.1;
+        document.getElementById('timerValue').textContent = secondsElapsed.toFixed(1) + 's';
+      }, 100);
+
+      socket.emit('findMatch', { nickname: myNickname, flag: myFlag, winStreak: winStreak });
+    });
+
+    socket.on('matchFound', (data) => {
+      clearInterval(searchTimer);
+      roomId = data.roomId;
+
+      if (data.opponentName) oppNickname = data.opponentName;
+      if (data.opponentFlag) oppFlag = data.opponentFlag;
+      
+      oppLabel.textContent = oppFlag + " " + oppNickname.toUpperCase();
+      if (data.opponentStreak !== undefined) oppStreakBadge.textContent = '🔥 ' + data.opponentStreak;
+
+      lobbyOverlay.style.display = 'none';
+      arenaOverlay.style.display = 'flex';
+      statusDiv.textContent = 'COMBAT EN COURS 🔥';
+
+      totalAura = 0; oppAura = 0;
+      myAuraVal.textContent = "0"; oppAuraVal.textContent = "0";
+
+      matchTimeLeft = 20;
+      matchTimer.textContent = '20s';
+
+      gameTimer = setInterval(() => {
+        matchTimeLeft--;
+        matchTimer.textContent = matchTimeLeft + 's';
+        if (matchTimeLeft <= 0) { clearInterval(gameTimer); finishMatch(); }
+      }, 1000);
+
+      createPeerConnection();
+
+      if (data.role === 'player1') {
+        peerConnection.createOffer().then(offer => {
+          peerConnection.setLocalDescription(offer);
+          socket.emit('signal', { room: roomId, signal: { offer: offer } });
+        });
+      }
+    });
+
+    socket.on('opponentAura', (data) => {
+      if (data && data.aura !== undefined) {
+        oppAura = data.aura;
+        oppAuraVal.textContent = oppAura;
+      }
+    });
+
+    function finishMatch() {
+      arenaOverlay.style.display = 'none';
+      endGameOverlay.style.display = 'flex';
+
+      endMyName.textContent = myNickname.toUpperCase();
+      endOppName.textContent = oppNickname.toUpperCase();
+      endMyScore.textContent = totalAura;
+      endOppScore.textContent = oppAura;
+
+      if (totalAura >= oppAura) {
+        winStreak++;
+        localStorage.setItem('aura_win_streak', winStreak);
+        resultTitle.textContent = "VICTOIRE ! 👑"; resultTitle.style.color = "#22c55e";
+      } else {
+        winStreak = 0;
+        localStorage.setItem('aura_win_streak', 0);
+        resultTitle.textContent = "DÉFAITE... 💀"; resultTitle.style.color = "#ef4444";
+      }
+      updateStreakDisplay();
+
+      if (googleUser) {
+        socket.emit('registerUser', {
+          googleId: googleUser.googleId,
+          nickname: myNickname,
+          flag: myFlag,
+          winStreak: winStreak
+        });
+      }
+    }
+
+    document.getElementById('goHomeBtn').addEventListener('click', () => {
+      disconnectOpponent();
+      endGameOverlay.style.display = 'none';
+      lobbyOverlay.style.display = 'flex';
+      playBtn.style.display = 'block';
+      document.getElementById('connectingTimer').style.display = 'none';
+      statusDiv.textContent = 'BIENVENUE ' + myNickname.toUpperCase();
+    });
+
+    async function initCamera() {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
+        verifyWebcam.srcObject = localStream;
+        arenaWebcam.srcObject = localStream;
+
+        const camera = new Camera(verifyWebcam, {
+          onFrame: async () => {
+            const vid = currentStep < 5 ? verifyWebcam : arenaWebcam;
+            await hands.send({ image: vid });
+            await faceMesh.send({ image: vid });
+          },
+          width: 480, height: 640
+        });
+        camera.start();
+      } catch (err) { statusDiv.textContent = 'ACCÈS CAMÉRA REFUSÉ'; }
+    }
+
+    function createPeerConnection() {
+      peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19020' }] });
+      if (localStream) {
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      }
+      peerConnection.ontrack = (e) => { remoteVideo.srcObject = e.streams[0]; };
+      peerConnection.onicecandidate = (e) => {
+        if (e.candidate) socket.emit('signal', { room: roomId, signal: { candidate: e.candidate } });
+      };
+    }
+
+    socket.on('signal', async (data) => {
+      if (!peerConnection) createPeerConnection();
+      if (data.signal.offer) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal.offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        socket.emit('signal', { room: roomId, signal: { answer: answer } });
+      } else if (data.signal.answer) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal.answer));
+      } else if (data.signal.candidate) {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
+      }
+    });
+
+    initCamera();
+  </script>
+</body>
+</html>
